@@ -12,6 +12,7 @@ import { RoutesModule } from './routes/routes.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { SetupModule } from './setup/setup.module';
 import { UsersModule } from './users/users.module';
+import { TranslateModule } from './translate/translate.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { UsersModule } from './users/users.module';
     MeModule,
     AnalyticsModule,
     AdsModule,
+    TranslateModule,
   ],
   controllers: [AppController],
   providers: [AppService],
