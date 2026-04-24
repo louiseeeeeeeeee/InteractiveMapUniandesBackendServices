@@ -1,5 +1,6 @@
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
+import { UsersModule } from '../users/users.module';
 import { Building } from './entities/building.entity';
 import { Place } from './entities/place.entity';
 import { Restaurant } from './entities/restaurant.entity';
@@ -12,6 +13,7 @@ import { RestaurantsController } from './restaurants.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Place, Building, Room, Restaurant, Review]),
+    forwardRef(() => UsersModule), // Needed for FirebaseAuthGuard on POST reviews
   ],
   controllers: [PlacesController, RestaurantsController],
   providers: [PlacesService],
