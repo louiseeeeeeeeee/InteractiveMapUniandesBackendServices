@@ -13,13 +13,22 @@ export function createTypeOrmOptions(): TypeOrmModuleOptions & DataSourceOptions
     );
   }
 
+  const isVercelPostgres = !!environment.postgresUrl;
+
   return {
     type: 'postgres',
-    host: environment.dbHost,
-    port: environment.dbPort,
-    username: environment.dbUsername,
-    password: environment.dbPassword,
-    database: environment.dbName,
+    ...(isVercelPostgres
+      ? {
+          url: environment.postgresUrl,
+          ssl: { rejectUnauthorized: false }, // Required by Vercel Postgres
+        }
+      : {
+          host: environment.dbHost,
+          port: environment.dbPort,
+          username: environment.dbUsername,
+          password: environment.dbPassword,
+          database: environment.dbName,
+        }),
     uuidExtension: 'uuid-ossp',
     entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
     migrations: [join(__dirname, 'migrations', '*.{ts,js}')],

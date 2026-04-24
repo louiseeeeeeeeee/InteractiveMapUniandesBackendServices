@@ -110,6 +110,34 @@ export class UsersService {
     };
   }
 
+  async updateProfile(userId: string, patch: Partial<UserProfile>) {
+    const existing = await this.userProfileRepository.findOne({
+      where: { user: { id: userId } }, // Look up by user relation
+    });
+    if (existing) {
+      Object.assign(existing, patch); // Merge partial fields
+      return this.userProfileRepository.save(existing);
+    }
+    const user = await this.getUserById(userId);
+    return this.userProfileRepository.save(
+      this.userProfileRepository.create({ user, ...patch }),
+    );
+  }
+
+  async updatePreferences(userId: string, patch: Partial<UserPreference>) {
+    const existing = await this.userPreferenceRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (existing) {
+      Object.assign(existing, patch);
+      return this.userPreferenceRepository.save(existing);
+    }
+    const user = await this.getUserById(userId);
+    return this.userPreferenceRepository.save(
+      this.userPreferenceRepository.create({ user, ...patch }),
+    );
+  }
+
   private async ensurePreference(user: User) {
     if (user.preference) {
       return user.preference;

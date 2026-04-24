@@ -7,12 +7,13 @@ import { Review } from './entities/review.entity';
 import { Room } from './entities/room.entity';
 import { PlacesController } from './places.controller';
 import { PlacesService } from './places.service';
+import { RestaurantsController } from './restaurants.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Place, Building, Room, Restaurant, Review]),
   ],
-  controllers: [PlacesController],
+  controllers: [PlacesController, RestaurantsController],
   providers: [PlacesService],
   exports: [TypeOrmModule, PlacesService],
 })

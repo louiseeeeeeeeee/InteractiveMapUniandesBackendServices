@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdsModule } from './ads/ads.module';
 import { AnalyticsModule } from './analytics/analytics.module';
@@ -16,6 +17,7 @@ import { TranslateModule } from './translate/translate.module';
 
 @Module({
   imports: [
+    CacheModule.register({ isGlobal: true, ttl: 300_000, max: 500 }), // In-memory cache 5min
     TypeOrmModule.forRoot(createTypeOrmOptions()),
     FirebaseModule,
     UsersModule,

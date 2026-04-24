@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Post,
+  Put,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -108,5 +109,14 @@ export class SetupController {
     @Body() dto: ImportGraphDto,
   ) {
     return this.setupService.importCampusGraph(dto, file?.buffer);
+  }
+
+  @Put('campus/graph/backfill-coords')
+  @ApiOperation({
+    summary:
+      'Assign approximate lat/lng to every route node based on its building grid reference',
+  })
+  backfillNodeCoords() {
+    return this.setupService.backfillNodeCoords();
   }
 }

@@ -8,6 +8,8 @@ import { SchedulesService } from '../schedules/schedules.service';
 import { ScheduleSourceType } from '../common/enums/schedule-source-type.enum';
 import { UsersService } from '../users/users.service';
 import { ImportMyScheduleDto } from './dto/import-my-schedule.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class MeService {
@@ -32,6 +34,14 @@ export class MeService {
         emailVerified: currentUser.firebaseUser.email_verified ?? false,
       },
     };
+  }
+
+  async updateProfile(currentUser: AuthenticatedUserContext, dto: UpdateProfileDto) {
+    return this.usersService.updateProfile(currentUser.user.id, dto);
+  }
+
+  async updatePreferences(currentUser: AuthenticatedUserContext, dto: UpdatePreferencesDto) {
+    return this.usersService.updatePreferences(currentUser.user.id, dto);
   }
 
   async listSchedules(currentUser: AuthenticatedUserContext) {

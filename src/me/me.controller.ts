@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UploadedFile,
@@ -23,6 +24,8 @@ import type { AuthenticatedUserContext } from '../firebase/interfaces/authentica
 import { ImportMyScheduleDto } from './dto/import-my-schedule.dto';
 import { MeService } from './me.service';
 import { MyClassPathDto } from './dto/my-class-path.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @ApiTags('me')
 @ApiBearerAuth('firebase')
@@ -35,6 +38,24 @@ export class MeController {
   @ApiOperation({ summary: 'Get the authenticated user and their latest schedule summary' })
   getMe(@CurrentUser() currentUser: AuthenticatedUserContext) {
     return this.meService.getMe(currentUser);
+  }
+
+  @Patch('profile')
+  @ApiOperation({ summary: 'Update the authenticated user profile (name, program, picture)' })
+  updateProfile(
+    @CurrentUser() currentUser: AuthenticatedUserContext,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.meService.updateProfile(currentUser, dto);
+  }
+
+  @Patch('preferences')
+  @ApiOperation({ summary: 'Update the authenticated user preferences (language, dark mode, etc)' })
+  updatePreferences(
+    @CurrentUser() currentUser: AuthenticatedUserContext,
+    @Body() dto: UpdatePreferencesDto,
+  ) {
+    return this.meService.updatePreferences(currentUser, dto);
   }
 
   @Get('schedules')

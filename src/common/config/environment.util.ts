@@ -33,6 +33,7 @@ export const environment = {
   },
   get dbHost() {
     return (
+      readEnv('POSTGRES_HOST') ??
       readEnv('DB_HOST') ??
       (this.instanceConnectionName
         ? `/cloudsql/${this.instanceConnectionName}`
@@ -43,13 +44,16 @@ export const environment = {
     return readNumberEnv('DB_PORT', 5432);
   },
   get dbUsername() {
-    return readEnv('DB_USERNAME') ?? 'postgres';
+    return readEnv('POSTGRES_USER') ?? readEnv('DB_USERNAME') ?? 'postgres';
   },
   get dbPassword() {
-    return readEnv('DB_PASSWORD') ?? '123';
+    return readEnv('POSTGRES_PASSWORD') ?? readEnv('DB_PASSWORD') ?? '123';
   },
   get dbName() {
-    return readEnv('DB_NAME') ?? 'InteractiveMapUniandes';
+    return readEnv('POSTGRES_DATABASE') ?? readEnv('DB_NAME') ?? 'InteractiveMapUniandes';
+  },
+  get postgresUrl() {
+    return readEnv('POSTGRES_URL');
   },
   get dbSynchronize() {
     return readBooleanEnv('DB_SYNCHRONIZE', false);

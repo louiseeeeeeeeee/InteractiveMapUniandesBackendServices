@@ -1,8 +1,11 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
 import ExcelJS from 'exceljs';
 import { Readable } from 'stream';
@@ -42,6 +45,7 @@ export class RoutesService {
     @InjectRepository(ScheduledClass)
     private readonly scheduledClassRepository: Repository<ScheduledClass>,
     private readonly dataSource: DataSource,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   async importCampusGraph(dto: ImportGraphDto, fileBuffer?: Buffer) {
@@ -178,6 +182,10 @@ export class RoutesService {
       throw new BadRequestException('Both "from" and "to" are required.');
     }
 
+    const cacheKey = `graph:path:${from.trim().toLowerCase()}->${to.trim().toLowerCase()}`; // Cache key per pair
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached; // Skip Dijkstra if same pair cached
+
     const [nodes, edges, buildings] = await Promise.all([
       this.routeNodeRepository.find({
         where: { isCampusGraphNode: true },
@@ -305,7 +313,7 @@ export class RoutesService {
       .filter((node): node is RouteNode => Boolean(node))
       .map((node) => this.mapNodeToResponse(node));
 
-    return {
+    const result = {
       from: startNode.label,
       to: endNode.label,
       totalTimeSeconds,
@@ -317,6 +325,8 @@ export class RoutesService {
         travelTimeSeconds: edge.travelTimeSeconds,
       })),
     };
+    await this.cache.set(cacheKey, result, 5 * 60 * 1000); // Cache path for 5min
+    return result;
   }
 
   private async readGraphRows(filePath?: string, fileBuffer?: Buffer) {
