@@ -90,6 +90,16 @@ export class FirebaseAdminService {
       });
     }
 
+    // Fallback: init with just the project id. verifyIdToken still works
+    // because it uses Google's public JWKS (no private key needed).
+    const projectId = environment.firebaseProjectId;
+    if (projectId) {
+      return admin.initializeApp({
+        projectId,
+        storageBucket: storageBucket || undefined,
+      });
+    }
+
     return undefined;
   }
 

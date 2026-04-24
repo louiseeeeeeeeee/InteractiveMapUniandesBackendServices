@@ -25,32 +25,47 @@ export class FirebaseStorageService {
     const bucket = this.firebaseAdminService.getStorageBucketOrNull();
 
     if (bucket) {
-      const file = bucket.file(storagePath);
-      await file.save(params.fileBuffer, {
-        resumable: false,
-        metadata: {
-          contentType: 'text/calendar; charset=utf-8',
-        },
-      });
+      try {
+        const file = bucket.file(storagePath);
+        await file.save(params.fileBuffer, {
+          resumable: false,
+          metadata: {
+            contentType: 'text/calendar; charset=utf-8',
+          },
+        });
 
-      return {
-        fileName: sanitizedFileName,
-        storageBucket: bucket.name,
-        storagePath,
-        storageProvider: 'firebase_storage',
-      };
+        return {
+          fileName: sanitizedFileName,
+          storageBucket: bucket.name,
+          storagePath,
+          storageProvider: 'firebase_storage',
+        };
+      } catch (err) {
+        // Fall through to local fs / skip on creds errors
+      }
     }
 
-    const absolutePath = join(process.cwd(), 'storage', ...storagePath.split('/'));
-    await fs.mkdir(dirname(absolutePath), { recursive: true });
-    await fs.writeFile(absolutePath, params.fileBuffer);
-
-    return {
-      fileName: sanitizedFileName,
-      storageBucket: null,
-      storagePath,
-      storageProvider: 'local_fs',
-    };
+    // On Vercel the cwd is read-only, try local_fs but swallow failure.
+    try {
+      const absolutePath = join(process.cwd(), 'storage', ...storagePath.split('/'));
+      await fs.mkdir(dirname(absolutePath), { recursive: true });
+      await fs.writeFile(absolutePath, params.fileBuffer);
+      return {
+        fileName: sanitizedFileName,
+        storageBucket: null,
+        storagePath,
+        storageProvider: 'local_fs',
+      };
+    } catch {
+      // Serverless, no writable FS. The ICS content is still parsed into Postgres
+      // so the class list works — we just skip archiving the raw file.
+      return {
+        fileName: sanitizedFileName,
+        storageBucket: null,
+        storagePath: 'not-stored',
+        storageProvider: 'local_fs',
+      };
+    }
   }
 
   private sanitizeFileName(fileName: string) {
