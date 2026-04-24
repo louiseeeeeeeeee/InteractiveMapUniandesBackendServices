@@ -22,6 +22,19 @@ import { ImportGraphDto } from './dto/import-graph.dto';
 import { Edge } from './entities/edge.entity';
 import { RouteNode } from './entities/route-node.entity';
 
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000; // Earth radius in meters
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 interface GraphRow {
   from?: string;
   to?: string;
@@ -165,6 +178,37 @@ export class RoutesService {
 
   async calculateShortestPath(query: CalculatePathDto) {
     return this.calculateShortestPathBetween(query.from, query.to);
+  }
+
+  async findNearestNode(lat: number, lng: number) { // Simple in-memory nearest search
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      throw new BadRequestException('lat and lng are required numbers.');
+    }
+    const nodes = await this.routeNodeRepository.find({
+      where: { isCampusGraphNode: true },
+    });
+    let best: RouteNode | undefined;
+    let bestDist = Infinity;
+    for (const node of nodes) {
+      if (node.latitude == null || node.longitude == null) continue;
+      const d = haversineMeters(lat, lng, Number(node.latitude), Number(node.longitude));
+      if (d < bestDist) {
+        bestDist = d;
+        best = node;
+      }
+    }
+    if (!best) {
+      throw new NotFoundException('No graph node has coordinates yet.');
+    }
+    return {
+      node: {
+        id: best.id,
+        label: best.label,
+        latitude: best.latitude,
+        longitude: best.longitude,
+      },
+      distanceMeters: Math.round(bestDist),
+    };
   }
 
   async calculatePathToClass(query: CalculateClassPathDto) {

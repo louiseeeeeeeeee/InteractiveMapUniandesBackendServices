@@ -19,6 +19,12 @@ export class RoutesController {
     return this.routesService.listCampusNodes();
   }
 
+  @Get('graph/nearest')
+  @ApiOperation({ summary: 'Find the graph node closest to a lat/lng' })
+  findNearest(@Query('lat') lat: string, @Query('lng') lng: string) {
+    return this.routesService.findNearestNode(parseFloat(lat), parseFloat(lng));
+  }
+
   @Get('graph/path')
   @ApiOperation({ summary: 'Calculate the shortest path in the campus graph' })
   calculateShortestPath(@Query() query: CalculatePathDto) {
