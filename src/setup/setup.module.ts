@@ -11,5 +11,6 @@ import { SetupService } from './setup.service';
   imports: [PlacesModule, RoutesModule, TypeOrmModule.forFeature([RouteNode])],
   controllers: [SetupController],
   providers: [SetupService, SetupGuard],
+  exports: [SetupGuard],
 })
 export class SetupModule {}

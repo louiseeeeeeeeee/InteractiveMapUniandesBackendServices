@@ -26,6 +26,9 @@ export class Place extends TimestampedEntity {
   @Column({ type: 'varchar', nullable: true })
   gridReference?: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  photoUrl?: string | null;
+
   @Column({
     type: 'enum',
     enum: PlaceCategory,

@@ -2,6 +2,7 @@ import { Body, Controller, Get, NotFoundException, Param, Post, UseGuards } from
 import { InjectRepository } from '@nestjs/typeorm';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { LessThanOrEqual, MoreThanOrEqual, Or, Repository, IsNull } from 'typeorm';
+import { AdminGuard } from '../firebase/admin.guard';
 import { CurrentUser } from '../firebase/current-user.decorator';
 import { FirebaseAuthGuard } from '../firebase/firebase-auth.guard';
 import type { AuthenticatedUserContext } from '../firebase/interfaces/authenticated-user-context.interface';
@@ -40,7 +41,9 @@ export class AdsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create an ad (admin)' })
+  @ApiBearerAuth('firebase')
+  @UseGuards(FirebaseAuthGuard, AdminGuard)
+  @ApiOperation({ summary: 'Create an ad (admin only)' })
   async create(@Body() dto: CreateAdDto) {
     const ad = this.adRepo.create({
       title: dto.title,

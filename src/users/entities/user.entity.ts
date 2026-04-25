@@ -26,6 +26,9 @@ export class User extends TimestampedEntity {
   })
   authProvider: AuthProvider;
 
+  @Column({ type: 'boolean', default: false })
+  isAdmin: boolean;
+
   @OneToOne(() => UserProfile, (profile) => profile.user)
   profile?: UserProfile;
 

@@ -6,6 +6,7 @@ import { Place } from './entities/place.entity';
 import { Restaurant } from './entities/restaurant.entity';
 import { Review } from './entities/review.entity';
 import { Room } from './entities/room.entity';
+import { AdminPlacesController } from './admin-places.controller';
 import { PlacesController } from './places.controller';
 import { PlacesService } from './places.service';
 import { RestaurantsController } from './restaurants.controller';
@@ -15,7 +16,7 @@ import { RestaurantsController } from './restaurants.controller';
     TypeOrmModule.forFeature([Place, Building, Room, Restaurant, Review]),
     forwardRef(() => UsersModule), // Needed for FirebaseAuthGuard on POST reviews
   ],
-  controllers: [PlacesController, RestaurantsController],
+  controllers: [PlacesController, RestaurantsController, AdminPlacesController],
   providers: [PlacesService],
   exports: [TypeOrmModule, PlacesService],
 })

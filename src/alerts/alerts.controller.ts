@@ -1,12 +1,14 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Repository } from 'typeorm';
+import { AdminGuard } from '../firebase/admin.guard';
+import { FirebaseAuthGuard } from '../firebase/firebase-auth.guard';
 import { Place } from '../places/entities/place.entity';
 import { CreateAlertDto } from './dto/create-alert.dto';
 import { Alert } from './entities/alert.entity';
 
-// Public read, open create for now (admin gating can come later).
+// Public read; create/deactivate require admin (route closures, maintenance windows).
 @ApiTags('alerts')
 @Controller('alerts')
 export class AlertsController {
@@ -29,7 +31,9 @@ export class AlertsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create an alert (admin)' })
+  @ApiBearerAuth('firebase')
+  @UseGuards(FirebaseAuthGuard, AdminGuard)
+  @ApiOperation({ summary: 'Create an alert (admin only)' })
   async create(@Body() dto: CreateAlertDto) {
     const place = dto.placeId ? await this.placeRepo.findOne({ where: { id: dto.placeId } }) : null;
     if (dto.placeId && !place) throw new NotFoundException('place not found');
@@ -45,7 +49,9 @@ export class AlertsController {
   }
 
   @Put(':id/deactivate')
-  @ApiOperation({ summary: 'Mark an alert as resolved/inactive' })
+  @ApiBearerAuth('firebase')
+  @UseGuards(FirebaseAuthGuard, AdminGuard)
+  @ApiOperation({ summary: 'Mark an alert as resolved/inactive (admin only)' })
   async deactivate(@Param('id') id: string) {
     const a = await this.alertRepo.findOne({ where: { id } });
     if (!a) throw new NotFoundException();
