@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { TranslateService } from './translate.service';
 import { ApiQuery, ApiTags, ApiOperation } from '@nestjs/swagger';
 
@@ -17,11 +17,15 @@ export class TranslateController {
     @Query('targetLang') targetLang: string,
     @Query('sourceLang') sourceLang?: string,
   ) {
-    const translatedText = await this.translateService.translateText(text, targetLang, sourceLang || 'es');
+    const cleanText = text?.trim();
+    const cleanTarget = targetLang?.trim();
+    if (!cleanText) throw new BadRequestException('text query parameter is required');
+    if (!cleanTarget) throw new BadRequestException('targetLang query parameter is required (e.g. en, es)');
+    const translatedText = await this.translateService.translateText(cleanText, cleanTarget, sourceLang?.trim() || 'es');
     return {
-      original: text,
+      original: cleanText,
       translated: translatedText,
-      targetLanguage: targetLang
+      targetLanguage: cleanTarget,
     };
   }
 }
