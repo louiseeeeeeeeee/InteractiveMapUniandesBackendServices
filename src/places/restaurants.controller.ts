@@ -33,13 +33,19 @@ export class RestaurantsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'List restaurants, optionally filtered/sorted (BQ #4)' })
+  @ApiOperation({ summary: 'List restaurants, optionally filtered/sorted (BQ #4, #5)' })
   @ApiQuery({ name: 'nearBuildingId', required: false, description: 'Sort closest to this building' })
   @ApiQuery({ name: 'minRating', required: false, type: Number })
+  @ApiQuery({ name: 'foodCategory', required: false, description: 'Match restaurant.foodCategory (case-insensitive)' })
+  @ApiQuery({ name: 'maxPrice', required: false, type: Number, description: 'Match restaurant.priceLevel <= maxPrice (1..4)' })
+  @ApiQuery({ name: 'minPrice', required: false, type: Number, description: 'Match restaurant.priceLevel >= minPrice (1..4)' })
   @ApiQuery({ name: 'sortBy', required: false, description: 'rating | name' })
   async list(
     @Query('nearBuildingId') nearBuildingId?: string,
     @Query('minRating') minRatingRaw?: string,
+    @Query('foodCategory') foodCategoryRaw?: string,
+    @Query('maxPrice') maxPriceRaw?: string,
+    @Query('minPrice') minPriceRaw?: string,
     @Query('sortBy') sortBy?: 'rating' | 'name',
   ) {
     let restaurants = await this.restaurantRepository.find();
@@ -47,6 +53,22 @@ export class RestaurantsController {
     const minRating = minRatingRaw ? Number(minRatingRaw) : undefined;
     if (minRating != null && Number.isFinite(minRating)) {
       restaurants = restaurants.filter((r) => (r.averageRating ?? 0) >= minRating);
+    }
+
+    const foodCategory = foodCategoryRaw?.trim().toLowerCase();
+    if (foodCategory) {
+      restaurants = restaurants.filter(
+        (r) => (r.foodCategory ?? '').toLowerCase() === foodCategory, // Case-insensitive equality
+      );
+    }
+
+    const minPrice = minPriceRaw ? Number(minPriceRaw) : undefined;
+    if (minPrice != null && Number.isFinite(minPrice)) {
+      restaurants = restaurants.filter((r) => (r.priceLevel ?? 0) >= minPrice);
+    }
+    const maxPrice = maxPriceRaw ? Number(maxPriceRaw) : undefined;
+    if (maxPrice != null && Number.isFinite(maxPrice)) {
+      restaurants = restaurants.filter((r) => (r.priceLevel ?? 99) <= maxPrice);
     }
 
     if (nearBuildingId) {
