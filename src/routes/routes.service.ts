@@ -14,6 +14,7 @@ import { normalizeSearchText } from '../common/utils/building-matching.util';
 import { resolveProjectImportPath } from '../common/utils/project-import-path.util';
 import { TravelMode } from '../common/enums/travel-mode.enum';
 import { Building } from '../places/entities/building.entity';
+import { Place } from '../places/entities/place.entity';
 import { ScheduledClass } from '../schedules/entities/scheduled-class.entity';
 import { resolveScheduledClassDestination } from '../schedules/utils/class-destination.util';
 import { CalculateClassPathDto } from './dto/calculate-class-path.dto';
@@ -55,6 +56,8 @@ export class RoutesService {
     private readonly edgeRepository: Repository<Edge>,
     @InjectRepository(Building)
     private readonly buildingRepository: Repository<Building>,
+    @InjectRepository(Place)
+    private readonly placeRepository: Repository<Place>,
     @InjectRepository(ScheduledClass)
     private readonly scheduledClassRepository: Repository<ScheduledClass>,
     private readonly dataSource: DataSource,
@@ -245,8 +248,15 @@ export class RoutesService {
       this.buildingRepository.find(),
     ]);
 
-    const startNode = this.resolveNodeQuery(from, nodes, buildings);
-    const endNode = this.resolveNodeQuery(to, nodes, buildings);
+    let startNode: RouteNode | undefined = this.resolveNodeQuery(from, nodes, buildings);
+    let endNode: RouteNode | undefined = this.resolveNodeQuery(to, nodes, buildings);
+
+    if (!startNode) {
+      startNode = await this.resolveNodeViaPlaceCoords(from, nodes); // Last resort: place name -> coords -> nearest node
+    }
+    if (!endNode) {
+      endNode = await this.resolveNodeViaPlaceCoords(to, nodes);
+    }
 
     if (!startNode) {
       throw new NotFoundException(`Could not resolve origin "${from}".`);
@@ -500,6 +510,38 @@ export class RoutesService {
         isCampusGraphEdge: true,
       }),
     );
+  }
+
+  // Look up a place by exact name, code, or alias. If it has coords, snap to the nearest graph node.
+  // Used as a fallback for restaurants and any non-building place the user can tap to navigate to.
+  private async resolveNodeViaPlaceCoords(query: string, nodes: RouteNode[]) {
+    const normalizedQuery = this.normalizeText(query);
+    if (!normalizedQuery) return undefined;
+
+    const allPlaces = await this.placeRepository.find();
+    const place = allPlaces.find((p) => {
+      if (this.normalizeText(p.name ?? '') === normalizedQuery) return true;
+      const codeLike = (p as any).code as string | undefined;
+      if (codeLike && this.normalizeText(codeLike) === normalizedQuery) return true;
+      const aliases = ((p as any).aliases ?? []) as string[];
+      return aliases.some((a) => this.normalizeText(a) === normalizedQuery);
+    });
+
+    if (!place || place.latitude == null || place.longitude == null) return undefined;
+
+    let best: RouteNode | undefined;
+    let bestDist = Infinity;
+    for (const node of nodes) {
+      if (node.latitude == null || node.longitude == null) continue;
+      const d = haversineMeters(
+        Number(place.latitude),
+        Number(place.longitude),
+        Number(node.latitude),
+        Number(node.longitude),
+      );
+      if (d < bestDist) { bestDist = d; best = node; }
+    }
+    return best;
   }
 
   private resolveNodeQuery(
