@@ -1,4 +1,4 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Inject, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 
@@ -11,19 +11,25 @@ export class TranslateService {
     const cached = await this.cache.get<string>(key);
     if (cached) return cached; // Return cached translation
 
-    try {
-      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`;
-      const response = await fetch(url);
-      const data: any = await response.json();
+    // One quick retry — MyMemory occasionally drops a request.
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`;
+        const response = await fetch(url);
+        const data: any = await response.json();
 
-      if (data && data.responseData && data.responseData.translatedText) {
-        const translated = data.responseData.translatedText;
-        await this.cache.set(key, translated, 24 * 60 * 60 * 1000); // Keep 24h
-        return translated;
+        const translated = data?.responseData?.translatedText;
+        if (typeof translated === 'string' && translated.length > 0) {
+          await this.cache.set(key, translated, 24 * 60 * 60 * 1000); // Keep 24h
+          return translated;
+        }
+        lastErr = new Error('Invalid response from translation API');
+      } catch (error: unknown) {
+        lastErr = error;
       }
-      throw new Error('Invalid response from translation API');
-    } catch (error: any) {
-      throw new InternalServerErrorException('Translation failed: ' + error.message);
     }
+    const message = lastErr instanceof Error ? lastErr.message : 'Translation provider error';
+    throw new ServiceUnavailableException(`Translation failed: ${message}`); // 503 maps better than 500 for upstream issues
   }
 }
